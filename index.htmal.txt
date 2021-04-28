@@ -1,0 +1,18 @@
+<head> </head>
+
+<body>
+    <video class="dashjs-player" autoplay controls preload="auto">
+        <source src="[MPD envivo]" type="application/dash+xml"/>
+    </video>
+
+    <script>
+        var player;
+        document.addEventListener("DOMContentLoaded", function () {
+            init();
+    });
+    function init(){
+        player = dashjs.MediaPlayerFactory.create( document.querySelector(".dashjsplayer"));
+    };
+    </script>
+
+</body>
