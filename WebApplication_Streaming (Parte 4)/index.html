@@ -1,0 +1,138 @@
+<head> 
+    <script src="https://reference.dashif.org/dash.js/latest/dist/dash.all.debug.js"></script> 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.2.0/chart.min.js"></script>
+</head>
+
+<body>
+    <div class="code">
+        <video class="dashjs-player" autoplay controls preload="auto" muted>
+        </video>
+    </div>
+    <div class="code">
+        <p>Video Bitrate: <span id="bitrate"></span> kbps</p>
+        <p>Video Buffer: <span id="buffer"></span> seconds</p>
+        <p>Video Representation: <span id="representation"></span></p>
+    </div>
+
+    <canvas id="myChart" width="400" height="400"></canvas>
+
+    <script>
+
+    </script>
+
+    <script>
+        const labels = [];
+        const data = {
+            labels: labels,
+            datasets: [{
+                label: 'Bitrate',
+                backgroundColor: 'rgb(24, 187, 198)',
+                borderColor: 'rgb(24, 187, 198)',
+                data: [],
+                yAxisID: 'y',
+            },
+            {
+                label: 'Buffer Level',
+                backgroundColor: 'rgb(0, 187, 45)',
+                borderColor: 'rgb(0, 187, 45)',
+                data: [],
+                yAxisID: 'y1',
+            }]
+        };
+
+        const config = {
+            type: 'line',
+            data: data,
+            options: {
+                responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                stacked: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'DATA REPRESENTATION'
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Time (s)'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Bitrate (Kbps)'
+                        },
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                    },
+                    y1: {
+                        title: {
+                            display: true,
+                            text: 'Buffer Level (s)'
+                        },
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+
+                        // grid line settings
+                        grid: {
+                            drawOnChartArea: false, // only want the grid lines for one axis to show up
+                        },
+                    },
+                }
+            },
+        };
+
+        var chart = new Chart(
+            document.getElementById('myChart'),
+            config
+        );
+
+        document.addEventListener("DOMContentLoaded", function () {
+            init();
+        });
+
+        function init(){
+            var i=0;
+            var video,
+            player,
+            mpd_url = "./output/stream.mpd";
+            video = document.querySelector("video");
+            player = dashjs.MediaPlayer().create();
+            player.initialize(video, mpd_url, true);
+            player.on(dashjs.MediaPlayer.events["PLAYBACK_ENDED"], function() {
+                clearInterval(eventPoller);
+            });
+            var eventPoller = setInterval(function() {
+                var streamInfo = player.getActiveStream().getStreamInfo();
+                var dashMetrics = player.getDashMetrics();
+                var dashAdapter = player.getDashAdapter();
+                if (dashMetrics && streamInfo) {
+                    const periodIdx = streamInfo.index;
+                    var repSwitch = dashMetrics.getCurrentRepresentationSwitch('video', true);
+                    var bufferLevel = dashMetrics.getCurrentBufferLevel('video', true);
+                    var bitrate = repSwitch ? Math.round(dashAdapter.getBandwidthForRepresentation(repSwitch.to, periodIdx) / 1000) : NaN;
+                    document.getElementById('buffer').innerText = bufferLevel + " secs";
+                    document.getElementById('bitrate').innerText = bitrate + " Kbps";
+                    document.getElementById('representation').innerText = repSwitch.to;
+
+                    chart.data.labels.push(i);
+                    chart.data.datasets[0].data.push(bitrate);
+                    chart.data.datasets[1].data.push(bufferLevel);
+                    chart.update();
+
+                    i=i+0.5;
+                }
+            }, 500);
+        }   
+
+    </script>   
+
+</body>
